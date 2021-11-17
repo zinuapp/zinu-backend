@@ -1,0 +1,4 @@
+micronaut:
+  application:
+    name: zinu
+redis.uri: rediss://default:Fq4lVqTWXWVxBlYY@db-redis-zinuapp-do-user-10170884-0.b.db.ondigitalocean.com:25061
