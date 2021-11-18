@@ -1,0 +1,8 @@
+FROM maven:3-openjdk-17
+
+COPY ./pom.xml ./pom.xml
+RUN mvn dependency:go-offline -B
+COPY ./src ./src
+RUN mvn clean package
+
+CMD ["java", "-Dmicronaut.environments=passenger", "-jar", "target/zinu-backend-0.1.jar"]

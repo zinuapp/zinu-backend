@@ -22,7 +22,7 @@ import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 
-@ServerWebSocket("/ws/chat/{passengerId}")
+@ServerWebSocket("/ws/passenger")
 @Requires(env = "passenger")
 public class PassengerWebsocket {
 
@@ -32,15 +32,15 @@ public class PassengerWebsocket {
 	RedisClient redisClient;
 
 	@OnOpen
-	public Publisher<String> onOpen(String passengerId, WebSocketSession session) {
-		LOG.info("Passenger [passengerId={}] connected", passengerId);
-		return session.send("welcome");
+	public Publisher<String> onOpen(WebSocketSession session) {
+		LOG.info("Passenger [sessionId={}] connected", session.getId());
+		return session.send("welcome$" + session.getId());
 	}
 
 	@OnMessage
-	public Publisher<String> onMessage(String passengerId, String message, WebSocketSession session)
+	public Publisher<String> onMessage(String message, WebSocketSession session)
 		throws JsonProcessingException {
-		LOG.info("Received from passenger [passengerId={}]: {}", passengerId, message);
+		LOG.info("Received from passenger [sessionId={}]: {}", session.getId(), message);
 
 		if (message.startsWith("FIND_CARS")) {
 			var connection = redisClient.connect();
@@ -51,7 +51,7 @@ public class PassengerWebsocket {
 			var cars = commands.georadius("cars-geoloc", Double.parseDouble(longi),
 				Double.parseDouble(lat), 5, GeoArgs.Unit.km);
 
-			LOG.info("Cars found [passengerId={}]: {}", passengerId, cars.size());
+			LOG.info("Cars found [sessionId={}]: {}", session.getId(), cars.size());
 			connection.close();
 
 			return session.send(new JsonMapper().writeValueAsString(cars));
@@ -62,7 +62,7 @@ public class PassengerWebsocket {
 
 			if (session.contains("GET_LOCATION_ALREADY_SUBSCRIBED_" + car)) {
 				return Flux.from(session.send("already subscribed to car " + car + " geolocation"))
-					.doOnNext(msg -> logMessageSentToPassenger(passengerId, msg));
+					.doOnNext(msg -> logMessageSentToPassenger(session.getId(), msg));
 			}
 
 			var connection = redisClient.connectPubSub();
@@ -82,16 +82,16 @@ public class PassengerWebsocket {
 			return reactive.observeChannels()
 				.map(ChannelMessage::getMessage)
 				.map(coordinates -> car + "$" + coordinates)
-				.doOnNext(msg -> logMessageSentToPassenger(passengerId, msg))
+				.doOnNext(msg -> logMessageSentToPassenger(session.getId(), msg))
 				.flatMap(session::send);
 		}
 
-		return Flux.from(session.send(message)).doOnNext(msg -> logMessageSentToPassenger(passengerId, msg));
+		return Flux.from(session.send(message)).doOnNext(msg -> logMessageSentToPassenger(session.getId(), msg));
 	}
 
 	@OnClose
-	public Publisher<String> onClose(String passengerId, WebSocketSession session) {
-		LOG.info("Passenger [passengerId={}] disconnected", passengerId);
+	public Publisher<String> onClose(WebSocketSession session) {
+		LOG.info("Passenger [sessionId={}] disconnected", session.getId());
 
 		session.get("redis-connections", Argument.listOf(StatefulRedisPubSubConnection.class))
 			.ifPresent(connections -> connections.forEach(StatefulConnection::close));
@@ -99,7 +99,7 @@ public class PassengerWebsocket {
 		return session.send("bye");
 	}
 
-	private static void logMessageSentToPassenger(String passengerId, String message) {
-		LOG.info("Message sent to passenger [passengerId={}]: {}", passengerId, message);
+	private static void logMessageSentToPassenger(String sessionId, String message) {
+		LOG.info("Message sent to passenger [sessionId={}]: {}", sessionId, message);
 	}
 }

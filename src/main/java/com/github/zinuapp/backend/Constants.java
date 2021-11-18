@@ -9,8 +9,6 @@ public final class Constants {
 		"CAR_4"
 	};
 
-	public static final double[] BELO_HORIZONTE_COORDINATES = new double[]{-19.917299, -43.934559};
-
 	public static final double[][] COORDINATES = new double[][] {
 		{-19.9218, -43.9458},
 		{-19.9246, -43.9457},

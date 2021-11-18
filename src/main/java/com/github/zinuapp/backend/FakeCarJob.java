@@ -2,7 +2,6 @@ package com.github.zinuapp.backend;
 
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 import io.micronaut.context.annotation.Requires;
-import io.micronaut.context.env.Environment;
 import io.micronaut.scheduling.annotation.Scheduled;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -18,7 +17,6 @@ public class FakeCarJob {
 	private static final Logger LOG = LoggerFactory.getLogger(FakeCarJob.class);
 	private static final Random random = new Random();
 
-	@Inject Environment environment;
 	@Inject	StatefulRedisPubSubConnection<String, String> connection;
 
 	@Scheduled(fixedDelay = "10s")
